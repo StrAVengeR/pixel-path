@@ -5,7 +5,6 @@ public class GameApp {
      public static final int    WIDTH  = 800;
      public static final int    HEIGHT = 600;
      public static final String TITLE  = "Pixel Path";
- 
      public static void main(String[] args) {
          SwingUtilities.invokeLater(() -> {
              JFrame frame = new JFrame(TITLE);
