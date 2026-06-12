@@ -1,6 +1,5 @@
 package com.swinggame;
 
-import javax.swing.JPanel;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -14,6 +13,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import javax.swing.JPanel;
 
 public class GamePanel extends JPanel implements Runnable, KeyListener {
     public static final int WIDTH = 1280;
@@ -31,6 +32,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     private long stateTimer = 0;
     private long menuStartTime = -1;
     private int menuSelection = 0; // 0=start, 1=restart, 2=quit
+    private int mapClearSelection = 0; // 0=next, 1=restart, 2=menu
 
     private enum State {
         MENU, PLAYING, MAP_CLEAR, GAME_OVER, WIN
@@ -81,15 +83,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         } else if (state == State.PLAYING) {
             updateGame();
         } else if (state == State.MAP_CLEAR) {
-            if (System.nanoTime() - stateTimer > 2_000_000_000L) {
-                currentMap++;
-                if (currentMap >= TOTAL_MAPS) {
-                    state = State.WIN;
-                } else {
-                    loadMap(currentMap);
-                    state = State.PLAYING;
-                }
-            }
+            updateMapClearMenu();
         }
     }
 
@@ -171,6 +165,39 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         }
     }
 
+    private void updateMapClearMenu() {
+        if (keys.contains(KeyEvent.VK_UP) || keys.contains(KeyEvent.VK_W)) {
+            mapClearSelection = Math.max(0, mapClearSelection - 1);
+            keys.remove(KeyEvent.VK_UP);
+            keys.remove(KeyEvent.VK_W);
+        }
+        if (keys.contains(KeyEvent.VK_DOWN) || keys.contains(KeyEvent.VK_S)) {
+            mapClearSelection = Math.min(2, mapClearSelection + 1);
+            keys.remove(KeyEvent.VK_DOWN);
+            keys.remove(KeyEvent.VK_S);
+        }
+        if (keys.contains(KeyEvent.VK_ENTER) || keys.contains(KeyEvent.VK_SPACE)) {
+            if (mapClearSelection == 0) {
+                currentMap++;
+                if (currentMap >= TOTAL_MAPS) {
+                    state = State.WIN;
+                } else {
+                    loadMap(currentMap);
+                    state = State.PLAYING;
+                }
+            } else if (mapClearSelection == 1) {
+                loadMap(currentMap);
+                state = State.PLAYING;
+            } else if (mapClearSelection == 2) {
+                state = State.MENU;
+                menuSelection = 0;
+                menuStartTime = System.nanoTime();
+            }
+            keys.remove(KeyEvent.VK_ENTER);
+            keys.remove(KeyEvent.VK_SPACE);
+        }
+    }
+
     private void updateGame() {
         handleInput();
         for (Player p : players) {
@@ -191,13 +218,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         }
         if (allAliveAtDoor()) {
             if (keys.contains(KeyEvent.VK_ENTER) || keys.contains(KeyEvent.VK_SPACE)) {
-                currentMap++;
-                if (currentMap >= TOTAL_MAPS) {
-                    state = State.WIN;
-                } else {
-                    loadMap(currentMap);
-                    state = State.PLAYING;
-                }
+                state = State.MAP_CLEAR;
+                stateTimer = System.nanoTime();
+                mapClearSelection = 0;
                 keys.remove(KeyEvent.VK_ENTER);
                 keys.remove(KeyEvent.VK_SPACE);
             }
@@ -216,7 +239,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             drawGame(g2);
         } else if (state == State.MAP_CLEAR) {
             drawGame(g2);
-            drawOverlay(g2, "LEVEL CLEARED!");
+            drawMapClearMenu(g2);
         } else if (state == State.GAME_OVER) {
             drawGame(g2);
             drawOverlay(g2, "GAME OVER");
@@ -295,7 +318,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         }
 
         // Menu options centered below panel
-        String[] menuOptions = { "Start Game", "Restart Current Map", "Quit" };
+        String[] menuOptions = { "Тоглоом эхлүүлэх", "Одоогийн үеийг дахин эхлүүлэх", "Гарах" };
         int menuX = WIDTH / 2;
         int menuY = panelY + panelH + 50;
         for (int i = 0; i < menuOptions.length; i++) {
@@ -409,6 +432,29 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         drawCenteredString(g, text, WIDTH / 2, HEIGHT / 2 - 50);
     }
 
+    private void drawMapClearMenu(Graphics2D g) {
+        drawOverlay(g, "Үе давлаа!");
+        String[] options = { "Дараагийн үе", "Дахин эхлүүлэх", "Menu руу буцах" };
+        int menuX = WIDTH / 2;
+        int menuY = HEIGHT / 2 + 50;
+        for (int i = 0; i < options.length; i++) {
+            boolean sel = (i == mapClearSelection);
+            int boxW = 360, boxH = 56;
+            int bx = menuX - boxW / 2;
+            int by = menuY + i * (boxH + 16);
+            g.setColor(sel ? new Color(40, 170, 90) : new Color(40, 40, 40, 200));
+            g.fillRoundRect(bx, by, boxW, boxH, 18, 18);
+            g.setColor(sel ? Color.WHITE : new Color(220, 220, 220));
+            g.setFont(new Font("Arial", sel ? Font.BOLD : Font.PLAIN, sel ? 22 : 18));
+            FontMetrics m = g.getFontMetrics();
+            int txtW = m.stringWidth(options[i]);
+            g.drawString(options[i], menuX - txtW / 2, by + boxH / 2 + 8);
+        }
+        g.setFont(new Font("Arial", Font.PLAIN, 14));
+        g.setColor(new Color(220, 220, 220, 200));
+        g.drawString("Use Up/Down or W/S then ENTER.", WIDTH / 2 - 140, menuY + options.length * 72);
+    }
+
     private void drawWin(Graphics2D g) {
         g.setColor(new Color(8, 8, 25));
         g.fillRect(0, 0, WIDTH, HEIGHT);
@@ -424,7 +470,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         drawCenteredString(g, "Та чадлаа!", WIDTH / 2, 340);
         g.setFont(new Font("Arial", Font.BOLD, 24));
         g.setColor(Color.YELLOW);
-        drawCenteredString(g, "THANK YOU FOR PLAYING!", WIDTH / 2, 420);
+        drawCenteredString(g, "Тоглосонд баярлалаа!", WIDTH / 2, 420);
     }
 
     private void drawCenteredString(Graphics2D g, String text, int centerX, int centerY) {
