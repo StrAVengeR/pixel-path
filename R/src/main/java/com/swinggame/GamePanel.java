@@ -218,9 +218,13 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         }
         if (allAliveAtDoor()) {
             if (keys.contains(KeyEvent.VK_ENTER) || keys.contains(KeyEvent.VK_SPACE)) {
-                state = State.MAP_CLEAR;
-                stateTimer = System.nanoTime();
-                mapClearSelection = 0;
+                if (currentMap >= TOTAL_MAPS - 1) {
+                    state = State.WIN;
+                } else {
+                    state = State.MAP_CLEAR;
+                    stateTimer = System.nanoTime();
+                    mapClearSelection = 0;
+                }
                 keys.remove(KeyEvent.VK_ENTER);
                 keys.remove(KeyEvent.VK_SPACE);
             }
@@ -433,6 +437,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     }
 
     private void drawMapClearMenu(Graphics2D g) {
+
         drawOverlay(g, "Үе давлаа!");
         String[] options = { "Дараагийн үе", "Дахин эхлүүлэх", "Menu руу буцах" };
         int menuX = WIDTH / 2;
