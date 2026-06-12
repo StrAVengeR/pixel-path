@@ -90,13 +90,13 @@ public class MapData {
     public static double[] getGoalPosition(int i) {
         switch (i) {
             case 0:
-                return new double[] { 1080, 160 };
+                return new double[] { 1080, 140 };
             case 1:
-                return new double[] { 1080, 440 };
+                return new double[] { 1080, 420 };
             case 2:
-                return new double[] { 980, 100 };
+                return new double[] { 980, 80 };
             case 3:
-                return new double[] { 920, 90 };
+                return new double[] { 920, 70 };
             default:
                 return new double[] { 1100, 100 };
         }
